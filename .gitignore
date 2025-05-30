@@ -126,3 +126,5 @@ Thumbs.db
 logs/*
 
 src/_routingTable.ts
+
+.dev/
