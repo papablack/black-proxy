@@ -8,8 +8,9 @@
   "type": "commonjs",
   "_rws_root": true,
   "scripts": {
-    "start": "node index.js run",
-    "stop": "node index.js stop"
+    "start": "node index.js run",    
+    "stop": "node index.js stop",
+    "test": "node index.js test"
   },
   "dependencies": {
     "@rws-framework/console": "^1.1.0",

@@ -21,7 +21,7 @@ black-proxy/
 │   ├── run.ts             # Server startup script
 │   ├── stop.ts            # Server shutdown script
 │   └── test.ts            # WebSocket test client
-├── dist/                  # Compiled JavaScript files
+├── build/                  # Compiled JavaScript runfiles
 ├── tsconfig.json          # TypeScript configuration
 ├── package.json           # Project dependencies and scripts
 └── README.md              # This file
@@ -29,14 +29,10 @@ black-proxy/
 
 ## Installation
 
-1. Install dependencies:
+Install dependencies:
+
 ```bash
 npm install
-```
-
-2. Build the TypeScript project:
-```bash
-npm run build
 ```
 
 ## Configuration
@@ -49,7 +45,7 @@ import { RoutingTable } from './types';
 const routingTable: RoutingTable = {
     'your-domain.com': {
         port: 3000,
-        host: '[::1]'
+        host: '[::1]',
     },
     'ws-domain.com': {
         host: '[::1]',
@@ -63,13 +59,6 @@ export default routingTable;
 
 ## Usage
 
-### Development
-
-Run in development mode with TypeScript compilation:
-```bash
-npm run dev
-```
-
 ### Production
 
 Build and start the proxy server:
@@ -82,27 +71,11 @@ Stop the proxy server:
 npm stop
 ```
 
-### Testing
-
-Test WebSocket connections:
-```bash
-npm test
-```
-
-### Manual Build
-
-Compile TypeScript to JavaScript:
-```bash
-npm run build
-```
-
 ## Scripts
 
-- `npm run build` - Compile TypeScript to JavaScript
-- `npm start` - Build and start the proxy server with PM2
-- `npm stop` - Build and stop the proxy server
-- `npm run dev` - Run in development mode with ts-node
-- `npm test` - Build and run WebSocket test client
+- `npm start` - Start the proxy server with PM2
+- `npm stop` - Stop the proxy server
+- `npm test` - Test ws server on the other side of proxy (port 3006)
 
 ## Type Definitions
 
@@ -123,16 +96,6 @@ interface RoutingTable {
   [domain: string]: RouteConfig;
 }
 ```
-
-## Migration from JavaScript
-
-This project has been migrated from JavaScript to TypeScript. The original JavaScript files are preserved for reference:
-
-- `proxy.js` → `src/proxy.ts`
-- `run.js` → `src/run.ts`
-- `stop.js` → `src/stop.ts`
-- `test.js` → `src/test.ts`
-- `_routingTable.js` → `src/_routingTable.ts`
 
 ## Features
 
@@ -165,6 +128,7 @@ This project has been migrated from JavaScript to TypeScript. The original JavaS
 - Node.js 16+
 - npm or yarn
 - PM2 (installed as dependency)
+- @rws-framework/tsc (transpiler, installed as dependency)
 
 ## License
 
