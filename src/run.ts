@@ -21,13 +21,11 @@ const logOutput = (data: string): void => {
 
 const cwd = path.join(__dirname, '..');
 
-console.log({cwd});
-
 // Use Node.js to run PM2 script directly (works better on Windows)
 const pm2Script = path.join(cwd, 'node_modules', 'pm2', 'bin', 'pm2');
 
 // Spawn PM2 process with inherited stdio (streams output to CLI)
-const pm2Process: ChildProcess = spawn('node', [pm2Script, 'start', 'node ./proxy.js', '--name', 'black-proxy', '--restart-delay', '5000'], {
+const pm2Process: ChildProcess = spawn('node', [pm2Script, 'start', 'node ./index.js proxy', '--name', 'black-proxy', '--restart-delay', '5000'], {
     stdio: 'inherit',
     cwd
 });
