@@ -5,5 +5,8 @@ export interface RouteConfig {
 }
 
 export interface RoutingTable {
-  [domain: string]: RouteConfig;
+  proxyPort: number,
+  routes: {
+    [domain: string]: RouteConfig;
+  }  
 }

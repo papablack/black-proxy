@@ -1,15 +1,18 @@
 import { RoutingTable } from './types';
 
 const routingTable: RoutingTable = {
-    'api.localhost': {
-        port: 3005,
-        host: 'localhost'
-    },
-    'ws.localhost': {
-        host: 'localhost',
-        port: 3006,
-        ws: true
-    }
+    proxyPort: 5500,
+    routes: {
+        'api.localhost': {
+            port: 3005,
+            host: '[::1]'
+        },
+        'ws.localhost': {
+            host: '[::1]',
+            port: 3006,
+            ws: true
+        }
+    }    
 };
 
 export default routingTable;

@@ -76,7 +76,7 @@ proxy.on('proxyReq', (proxyReq: http.ClientRequest, req: http.IncomingMessage, r
     const hostname = clearWWW((req.headers.host as string).split(':')[0]); // Extract domain name
     const origin = (req.headers.origin as string) || (req.headers.host as string);  
 
-    const targetRoute: RouteConfig | undefined = routingTable[hostname];
+    const targetRoute: RouteConfig | undefined = routingTable.routes[hostname];
 
     if (targetRoute && targetRoute.ws) {
         proxyReq.setHeader('Upgrade', 'websocket');
@@ -112,7 +112,7 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
     const hostname = clearWWW((req.headers.host as string).split(':')[0]); // Extract domain name
     const clientIP = req.socket.remoteAddress; // Get client IP    
 
-    const targetRoute: RouteConfig | undefined = routingTable[hostname];
+    const targetRoute: RouteConfig | undefined = routingTable.routes[hostname];
 
     let addition = '';
 
@@ -195,7 +195,7 @@ server.on('error', (err: Error) => {
     logEntry(`ERROR: ${err.message}`, null, true);
 });
 
-const port = 5500;
+const port = routingTable.proxyPort;
 
 server.listen(port, () => {
     logEntry(`Proxy server running on port ${port}`);
