@@ -1,0 +1,29 @@
+{
+  "name": "black-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "papablack",
+  "license": "ISC",
+  "type": "commonjs",
+  "_rws_root": true,
+  "scripts": {
+    "start": "node index.js run",
+    "stop": "node index.js stop"
+  },
+  "dependencies": {
+    "@rws-framework/console": "^1.1.0",
+    "@rws-framework/tsc": "^1.4.1",
+    "http-proxy": "*",
+    "pm2": "5.2.0",
+    "socket.io-client": "^4.8.1",
+    "ts-loader": "^9.5.2"
+  },
+  "devDependencies": {
+    "@types/http-proxy": "^1.17.14",
+    "@types/node": "^20.11.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.99.9"
+  }
+}
