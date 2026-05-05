@@ -19,6 +19,10 @@ if(!routingTable.dbUrl){
 
 const DB = new MySQLDriver(routingTable.dbUrl);
 
+if (!fs.existsSync(path.join(__dirname, '../logs'))) {
+    fs.mkdirSync(logFile, path.join(__dirname, '../logs'));
+}
+
 // Ensure log file exists or create it
 if (!fs.existsSync(logFile)) {
     fs.writeFileSync(logFile, '', { flag: 'w' });
