@@ -4,10 +4,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import routingTable from './_routingTable';
-import { RouteConfig } from './types';
+import { IProxyUser, RouteConfig, RoutingTable } from './types';
+import { MySQLDriver } from './dbAuth';
 
+const connectedUsers: Map<string, IProxyUser> = new Map();
+
+const routingTableData: RoutingTable = routingTable; // Import routingTable as a typed variable
 // Define log file patho
 const logFile = path.join(__dirname, '../logs/proxy.log');
+
+if(!routingTable.dbUrl){
+    throw new Error('No db URL set.');
+}
+
+const DB = new MySQLDriver(routingTable.dbUrl);
 
 // Ensure log file exists or create it
 if (!fs.existsSync(logFile)) {
@@ -72,25 +82,7 @@ const determineProtocolFromOrigin = (origin: string, req: http.IncomingMessage):
     return detectedProtocol || 'https';
 };
 
-proxy.on('proxyReq', (proxyReq: http.ClientRequest, req: http.IncomingMessage, res: http.ServerResponse, options: any) => {
-    const hostname = clearWWW((req.headers.host as string).split(':')[0]); // Extract domain name
-    const origin = (req.headers.origin as string) || (req.headers.host as string);  
 
-    const targetRoute: RouteConfig | undefined = routingTable.routes[hostname];
-
-    if (targetRoute && targetRoute.ws) {
-        proxyReq.setHeader('Upgrade', 'websocket');
-        proxyReq.setHeader('Connection', 'Upgrade');
-        console.log({origin});
-        const protocol = determineProtocolFromOrigin(origin, req);
-
-        proxyReq.setHeader('X-Forwarded-For', protocol);
-        proxyReq.setHeader('X-Real-IP', req.socket.remoteAddress || '');
-        proxyReq.setHeader('Origin', origin);
-
-        logEntry(`Proxy protocol: ${protocol}, original URL: ${origin}`);      
-    }
-});
 
 proxy.on('error', (error: Error & { code?: string }, req: http.IncomingMessage, res: http.ServerResponse) => {
     const hostname = clearWWW((req.headers.host as string).split(':')[0]); // Extract domain name
@@ -112,7 +104,7 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
     const hostname = clearWWW((req.headers.host as string).split(':')[0]); // Extract domain name
     const clientIP = req.socket.remoteAddress; // Get client IP    
 
-    const targetRoute: RouteConfig | undefined = routingTable.routes[hostname];
+    const targetRoute = findTargetRoute(hostname);
 
     let addition = '';
 
@@ -143,17 +135,42 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
     }
 });
 
-server.on('upgrade', (req: http.IncomingMessage, socket: any, head: Buffer) => {
+server.on('upgrade', async (req: http.IncomingMessage, socket: any, head: Buffer) => {
     const hostname = clearWWW((req.headers.host as string).split(':')[0]);
     const clientIP = req.socket ? req.socket.remoteAddress : socket.remoteAddress;    
     
-    let targetRoute: RouteConfig | null = null;
-    for (const [domain, config] of Object.entries(routingTable)) {
-        if (domain === hostname && config.ws) {
-            targetRoute = config;
-            break;
-        }
+    const reqUrl: string = req.url as string;
+
+    const token = (reqUrl.substring(reqUrl.indexOf('?') + 1).split('&')[0]).split('=')[1];
+
+    if(!token){
+        logEntry('No token', clientIP, true);
+        return;
+    }    
+
+    const wsKey = req.headers['sec-websocket-key'];
+
+    if(!wsKey){
+        logEntry('No ws key', clientIP, true);
+        return;
     }
+    
+    if(!connectedUsers.has(wsKey)){
+        logEntry('Authenticating: ' + wsKey);
+
+        if(await DB.auth(token)){
+            connectedUsers.set(wsKey, {
+                pubKey: token
+            });
+        }else{
+            socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+            socket.destroy();
+            return;
+        }     
+    }
+
+    const targetRoute = findTargetRoute(hostname);
+   
 
     let addition = '';
     if (req.headers['x-proxied-with-vhost']) {
@@ -162,10 +179,15 @@ server.on('upgrade', (req: http.IncomingMessage, socket: any, head: Buffer) => {
 
     if (targetRoute) {     
         logEntry(`WebSocket upgrade request for ${hostname} proxied to ${targetRoute.port}${addition ? ` ${addition}` : ''}`, clientIP);
-        
+   
+
+        // if(req.headers['authorization']){
+
+        // }
+
         // Proxy WebSocket z dodatkowymi opcjami
         proxy.ws(req, socket, head, { 
-            target: `http://[::1]:${targetRoute.port}`,
+            target: `http://${targetRoute.host}:${targetRoute.port}`,
             changeOrigin: true,
             ws: true,
             secure: false,
@@ -185,6 +207,18 @@ server.on('upgrade', (req: http.IncomingMessage, socket: any, head: Buffer) => {
         socket.destroy();
         logEntry(`ERROR: WebSocket domain not found in proxy configuration: ${hostname}${addition ? ` ${addition}` : ''}`, clientIP || null, true);
     }
+
+    socket.on('close', () => {
+        if(connectedUsers.has(wsKey)){
+            connectedUsers.delete(wsKey);
+        }
+    });
+
+    socket.on('end', () => {
+        if(connectedUsers.has(wsKey)){
+            connectedUsers.delete(wsKey);
+        }
+    });
 });
 
 proxy.on('proxyRes', (proxyRes: http.IncomingMessage, req: http.IncomingMessage, res: http.ServerResponse) => {    
@@ -195,9 +229,26 @@ server.on('error', (err: Error) => {
     logEntry(`ERROR: ${err.message}`, null, true);
 });
 
-const port = routingTable.proxyPort;
+const port = routingTableData.proxyPort;
+
+function findTargetRoute(hostname: string): RouteConfig | null
+{
+    let targetRoute: RouteConfig | null = null;
+    for (const routeEntry of Object.entries(routingTableData.routes)) {        
+        const routeEntryKey = routeEntry[0];
+        const config = routeEntry[1];
+        const domain = config.host; // Użyj host z configu lub klucza jako domeny
+
+        if (domain === hostname && config.ws) {
+            targetRoute = config;
+            break;
+        }
+    }
+
+    return targetRoute;
+}
 
 server.listen(port, () => {
     logEntry(`Proxy server running on port ${port}`);
-    logEntry(`Proxy routingTable: ${JSON.stringify(routingTable, null, 2)}`);
+    logEntry(`Proxy routingTable: ${JSON.stringify(routingTableData, null, 2)}`);
 });

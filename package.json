@@ -9,14 +9,16 @@
   "type": "commonjs",
   "_rws_root": true,
   "scripts": {
-    "start": "node index.js run",    
+    "start": "node index.js run",
     "stop": "node index.js stop",
     "test": "node index.js test"
   },
   "dependencies": {
     "@rws-framework/console": "^1.1.0",
     "@rws-framework/tsc": "^1.4.1",
+    "dotenv": "^17.4.2",
     "http-proxy": "*",
+    "mysql2": "^3.22.3",
     "pm2": "5.2.0",
     "socket.io-client": "^4.8.1",
     "ts-loader": "^9.5.2"
